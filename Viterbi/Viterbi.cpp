@@ -59,6 +59,47 @@ void przesuwanieRejestru(int rejestr[7], int input, int G4, int G5, int G6) {
 	rejestr[0] = input;
 }
 
+void koder(int *wektor, int n, int esn0)
+{
+	generujWektor(wektor, n);
+
+	int dlugoscWektora = n + 7;
+
+	int *wektor_wejsciowy = new int[dlugoscWektora];
+	int *rejestr = new int[7];
+	int *output = new int[3*dlugoscWektora];
+	int G4 = 0, G5 = 0, G6 = 0;
+
+	for (int i = 0; i < dlugoscWektora; i++)
+	{
+		wektor_wejsciowy[i] = 0;
+	}
+
+	for (int i = 0; i < n; i++)
+	{
+		wektor_wejsciowy[i] = wektor[i];
+	}
+
+	for (int i = 0; i < dlugoscWektora; i++)
+	{
+		int input = wektor_wejsciowy[i];
+		przesuwanieRejestru(rejestr, input, G4, G5, G6);
+		output[i] = G4;
+		output[dlugoscWektora + i] = G5;
+		output[2*dlugoscWektora + i] = G6;
+	}
+
+	puszczeniePrzezKanal(output, esn0, n);
+}
+
+void puszczeniePrzezKanal(int *output, int esn0, int n)
+{
+	int dlugoscWektora = n + 7;
+	float *outputPoKanale = new float[3*dlugoscWektora];
+
+	kanal(esn0, 3 * dlugoscWektora, output, outputPoKanale);
+}
+
 void zapisDoPliku(double *w1, double *w2, double *w3, double dl) {
 	ofstream plik;
 	plik.open("wyniki.txt");
@@ -105,6 +146,8 @@ int main()
 	}
 
 	cout << "ilosc bitow: " << ileBitow;
+
+
 }
 
 // Uruchomienie programu: Ctrl + F5 lub menu Debugowanie > Uruchom bez debugowania
