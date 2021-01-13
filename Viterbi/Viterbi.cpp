@@ -104,6 +104,7 @@ int main()
 		break;
 	}
 
+	int *wektorWej = new int[ileBitow];
 	cout << "ilosc bitow: " << ileBitow;
 }
 
