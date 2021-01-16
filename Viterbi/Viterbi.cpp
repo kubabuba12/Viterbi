@@ -48,10 +48,10 @@ int generujWektor(int *wektor, int n) {
 // ---------------------------------
 // | 1 | D | D2 | D3 | D4 | D5 | D6|
 // ---------------------------------
-void przesuwanieRejestru(int rejestr[7], int input, int G4, int G5, int G6) {
-	G4 = (input + rejestr[2] + rejestr[3] + rejestr[5] + rejestr[6]) % 2;
-	G5 = (input + rejestr[1] + rejestr[4] + rejestr[6]) % 2;
-	G6 = (input + rejestr[1] + rejestr[2] + rejestr[3] + rejestr[4] + rejestr[6]) % 2;
+void przesuwanieRejestru(int rejestr[7], int input, int *G4, int *G5, int *G6) {
+	*G4 = (input + rejestr[2] + rejestr[3] + rejestr[5] + rejestr[6]) % 2;
+	*G5 = (input + rejestr[1] + rejestr[4] + rejestr[6]) % 2;
+	*G6 = (input + rejestr[1] + rejestr[2] + rejestr[3] + rejestr[4] + rejestr[6]) % 2;
 
 	for (int i = 6; i > 0; i--) {
 		rejestr[i] = rejestr[i - 1];
@@ -59,14 +59,34 @@ void przesuwanieRejestru(int rejestr[7], int input, int G4, int G5, int G6) {
 	rejestr[0] = input;
 }
 
+void puszczeniePrzezKanal(int *output, int esn0, int n)
+{
+	int dlugoscWektora = n + 7;
+	float *outputPoKanale = new float[3 * dlugoscWektora];
+
+	kanal(esn0, 3 * dlugoscWektora, output, outputPoKanale);
+}
+
+//Podejmowanie decyzji o nadanym symbolu
+void blokDecyzyjny(int *output, int dlugosc) {
+	for (int i = 0; i < dlugosc; i++) {
+		if (*(output + i) < 0) {
+			*(output + i) = 0;
+		}
+		else
+			*(output + i) = 1;
+	}
+}
+
+//Koder splotowy nasze informacji
 void koder(int *wektor, int n, int esn0)
 {
 	generujWektor(wektor, n);
-
+	//dodtakowy pakiet zerujacy rejestr
 	int dlugoscWektora = n + 7;
 
 	int *wektor_wejsciowy = new int[dlugoscWektora];
-	int *rejestr = new int[7];
+	int rejestr[7] = { 0,0,0,0,0,0,0 };
 	int *output = new int[3*dlugoscWektora];
 	int G4 = 0, G5 = 0, G6 = 0;
 
@@ -83,21 +103,57 @@ void koder(int *wektor, int n, int esn0)
 	for (int i = 0; i < dlugoscWektora; i++)
 	{
 		int input = wektor_wejsciowy[i];
-		przesuwanieRejestru(rejestr, input, G4, G5, G6);
+		przesuwanieRejestru(rejestr, input, &G4, &G5, &G6);
 		output[i] = G4;
 		output[dlugoscWektora + i] = G5;
 		output[2*dlugoscWektora + i] = G6;
 	}
 
+
 	puszczeniePrzezKanal(output, esn0, n);
+	cout << "\nwyjscie z kanalu: ";
+	for (int i = 0; i < 300; i++) {
+		cout << *(output + i);
+	}
+	blokDecyzyjny(output, n);
+
+	//na tym etapie w output jest ciag kodowy po przejsciu przez kanal i detekcji
 }
 
-void puszczeniePrzezKanal(int *output, int esn0, int n)
-{
-	int dlugoscWektora = n + 7;
-	float *outputPoKanale = new float[3*dlugoscWektora];
+//pomysł do dekodowania
+void dekodowanie(int *odebrany, int dlugosc) {
+	int rejestr[7] = { 0,0,0,0,0,0,0 };
+	int G4 = 0, G5 = 0, G6 = 0;
+	// odległosci hamminga dla pobudzenia '0' - A i '1' - B
+	int hammingA = 0;
+	int hammingB = 0;
+	//---------- PETLA --------------//
+	for (int i = 0; i < dlugosc; i++) {
+		//wrzucam 0 na koder patrze co i porownuje z odebranym
+		przesuwanieRejestru(rejestr, 0, &G4, &G5, &G6);
+		if (G4 != *(odebrany + i)){
+			hammingA++;
+		}
+		if (G5 != *(odebrany + dlugosc + i)) {
+			hammingA++;
+		}
+		if (G6 != *(odebrany + 2*dlugosc + i)) {
+			hammingA++;
+		}
+		//mamy rejestr -> obecny stan
+		//wrzucam 1 na koder patrze co i porownuje z odebranym
+		przesuwanieRejestru(rejestr, 1, &G4, &G5, &G6);
+		if (G4 != *(odebrany + i)) {
+			hammingB++;
+		}
+		if (G5 != *(odebrany + dlugosc + i)) {
+			hammingB++;
+		}
+		if (G6 != *(odebrany + 2 * dlugosc + i)) {
+			hammingB++;
+		}
+	}
 
-	kanal(esn0, 3 * dlugoscWektora, output, outputPoKanale);
 }
 
 void zapisDoPliku(double *w1, double *w2, double *w3, double dl) {
@@ -146,8 +202,13 @@ int main()
 	}
 
 	int *wektorWej = new int[ileBitow];
-	cout << "ilosc bitow: " << ileBitow;
+	koder(wektorWej, ileBitow, esn0);
+	cout << "\ninformacja: ";
+	for (int i = 0; i < 100; i++) {
+		cout << *(wektorWej + i);
+	}
 
+	
 
 }
 
